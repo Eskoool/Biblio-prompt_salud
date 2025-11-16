@@ -1,176 +1,215 @@
 # 🚀 Guía de Deployment en Vercel
 
-Esta guía te ayudará a deployar **Biblio Prompt Salud** en Vercel (monorepo con Frontend + Backend).
+Esta guía te ayudará a deployar **Biblio Prompt Salud** en Vercel con **un solo proyecto** (Frontend + Backend juntos).
 
-## 📦 Estructura del Proyecto
+## 📦 Arquitectura
+
+El proyecto está configurado como **monorepo unificado**:
 
 ```
 Biblio-prompt_salud/
-├── frontend/          # React + Vite
-├── backend/           # Express + Supabase
-├── vercel.json        # Config para Frontend
-└── backend/vercel.json # Config para Backend
+├── frontend/          # React + Vite (se sirve como sitio estático)
+├── backend/           # Express + Supabase (se compila a /api)
+├── api/               # Vercel Serverless Functions (wrapper del backend)
+└── vercel.json        # Configuración unificada
 ```
 
-## 🎯 Opción 1: Deploy Recomendado (Proyectos Separados)
+**¿Cómo funciona?**
+- Frontend → Se sirve desde `/` (Vite build estático)
+- Backend → Se ejecuta como función serverless en `/api/*`
+- En desarrollo → Vite hace proxy de `/api` a `localhost:5000`
+- En producción → Vercel enruta `/api` a la función serverless
 
-### Frontend en Vercel
+## 🚀 Deploy en Un Solo Proyecto
 
-1. **Crear proyecto en Vercel:**
-   - Ve a https://vercel.com/new
-   - Selecciona tu repositorio GitHub
-   - Framework Preset: **Vite**
-   - Root Directory: **frontend**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
+### 1. Conectar con Vercel
 
-2. **Variables de entorno:**
-   ```
-   VITE_SUPABASE_URL=https://erlfovrvvhdadvepokdh.supabase.co
-   VITE_SUPABASE_ANON_KEY=tu_anon_key
-   VITE_API_URL=https://tu-backend.vercel.app
-   ```
+1. Ve a https://vercel.com/new
+2. Selecciona tu repositorio `Biblio-prompt_salud`
+3. **No cambies ninguna configuración** (el `vercel.json` lo maneja todo)
+4. Click **"Deploy"**
 
-3. **Deploy:**
-   - Click "Deploy"
-   - URL del frontend: `https://biblio-prompt-salud.vercel.app`
+### 2. Configurar Variables de Entorno
 
-### Backend en Vercel
+En el proyecto de Vercel, ve a **Settings** → **Environment Variables** y agrega:
 
-1. **Crear segundo proyecto en Vercel:**
-   - Ve a https://vercel.com/new
-   - Selecciona el MISMO repositorio
-   - Framework Preset: **Other**
-   - Root Directory: **backend**
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
+```env
+# Supabase (requerido)
+SUPABASE_URL=https://erlfovrvvhdadvepokdh.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-2. **Variables de entorno:**
-   ```
-   NODE_ENV=production
-   SUPABASE_URL=https://erlfovrvvhdadvepokdh.supabase.co
-   SUPABASE_ANON_KEY=tu_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
-   ```
+# Node Environment
+NODE_ENV=production
 
-3. **Deploy:**
-   - Click "Deploy"
-   - URL del backend: `https://biblio-prompt-backend.vercel.app`
-
-4. **Actualizar Frontend:**
-   - Ve al proyecto del frontend en Vercel
-   - Settings → Environment Variables
-   - Actualiza `VITE_API_URL` con la URL del backend
-   - Redeploy el frontend
-
-## 🎯 Opción 2: Deploy desde Root (No Recomendado)
-
-Si prefieres deployar todo desde la raíz:
-
-### Frontend (Default)
-
-El `vercel.json` en la raíz está configurado para deployar el frontend por defecto.
-
-```bash
-vercel --prod
+# Frontend (con VITE_ prefix)
+VITE_SUPABASE_URL=https://erlfovrvvhdadvepokdh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-### Backend (Manual)
+**Importante:** Las variables `VITE_*` son para el frontend (se inyectan en build time).
 
-```bash
-cd backend
-vercel --prod
-```
+### 3. Redeploy
 
-## ⚙️ Configuración Post-Deploy
+Después de configurar las variables de entorno:
+- Ve a **Deployments**
+- Click en los 3 puntos del último deploy
+- Click **"Redeploy"**
 
-### 1. Crear Usuario Admin en Supabase
+## ✅ Verificar Deployment
 
+Una vez completado el deploy:
+
+1. **Frontend:** `https://tu-proyecto.vercel.app/`
+   - Deberías ver la página principal con prompts
+
+2. **Backend API:** `https://tu-proyecto.vercel.app/api/health`
+   - Debería responder: `{"status":"OK","message":"Biblio Prompt Salud API is running"}`
+
+3. **Prompts:** `https://tu-proyecto.vercel.app/api/prompts`
+   - Debería devolver array de prompts desde Supabase
+
+## 🔧 Configuración Post-Deploy
+
+### Crear Usuario Admin
+
+El último paso es crear tu usuario administrador en Supabase:
+
+**Opción 1: Desde Supabase Dashboard**
+
+1. Ve a https://supabase.com/dashboard
+2. Selecciona tu proyecto
+3. **Authentication** → **Users** → **Add user** → **Create new user**
+   - Email: `admin@biblioprompt.com`
+   - Password: `admin123` (o el que prefieras)
+   - ✅ Activa **"Auto Confirm User"**
+4. Click **"Create user"**
+
+5. Ve a **SQL Editor** y ejecuta:
 ```sql
--- En Supabase SQL Editor
 UPDATE user_profiles
 SET role = 'admin'
 WHERE email = 'admin@biblioprompt.com';
 ```
 
-### 2. Verificar Variables de Entorno
+**Opción 2: Desde la aplicación (si el registro está habilitado)**
 
-Frontend necesita:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_API_URL` (URL del backend en Vercel)
+1. Abre `https://tu-proyecto.vercel.app`
+2. Click en **"Acceso Admin"**
+3. Regístrate con email y contraseña
+4. Ejecuta el SQL en Supabase para cambiar tu rol a admin
 
-Backend necesita:
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NODE_ENV=production`
+### Verificar RLS Policies
 
-### 3. Configurar CORS en Backend
+Asegúrate de que ejecutaste el `complete-setup.sql` en Supabase, que incluye:
 
-Si tienes problemas de CORS, actualiza `backend/src/server.ts`:
+- ✅ Políticas RLS para acceso público de lectura
+- ✅ Políticas RLS para escritura solo admin
+- ✅ Triggers para auto-crear perfiles de usuario
+- ✅ Datos de ejemplo (tags, plataformas, prompts)
+
+## 🔄 Desarrollo Local
+
+Para desarrollar localmente:
+
+```bash
+# Instalar dependencias
+npm run install:all
+
+# Terminal 1: Backend
+cd backend && npm run dev
+
+# Terminal 2: Frontend
+cd frontend && npm run dev
+```
+
+- Frontend: http://localhost:3000
+- Backend: http://localhost:5000
+- Vite hace proxy de `/api` → `http://localhost:5000/api`
+
+## 🐛 Troubleshooting
+
+### Error: "Cannot find module '../backend/dist/server.js'"
+
+El backend no se compiló. Verifica:
+1. `backend/package.json` tiene `typescript` en `dependencies` ✅
+2. `backend/tsconfig.json` existe con `outDir: "./dist"` ✅
+3. El build command se ejecutó: `cd backend && npm run build`
+
+### Error: API calls return 404
+
+Verifica el `vercel.json`:
+```json
+"rewrites": [
+  {
+    "source": "/api/:path*",
+    "destination": "/api/index"
+  }
+]
+```
+
+### Error: CORS issues
+
+Actualiza `backend/src/server.ts` para permitir tu dominio de Vercel:
 
 ```typescript
 app.use(cors({
   origin: [
-    'https://biblio-prompt-salud.vercel.app',
+    'https://tu-proyecto.vercel.app',
     'http://localhost:3000'
   ],
   credentials: true
 }));
 ```
 
-## 🔧 Troubleshooting
+### Error: Supabase connection failed
 
-### Error: `tsc: command not found`
+1. Verifica las variables de entorno en Vercel
+2. Asegúrate de usar la **service role key** en el backend
+3. Verifica que tu URL de Supabase es correcta
 
-✅ **Solucionado:** TypeScript ahora está en `dependencies` en lugar de `devDependencies`.
+### Build fails: "tsc: command not found"
 
-### Error: Build fails
+✅ **Ya solucionado:** TypeScript está en `dependencies`.
 
-1. Verifica que estás usando Node.js 18.x o superior
-2. Verifica que la Root Directory está correctamente configurada
-3. Revisa los logs de build en Vercel Dashboard
-
-### Error: API calls fail
-
-1. Verifica que `VITE_API_URL` apunta a la URL correcta del backend
-2. Verifica CORS en el backend
-3. Revisa Network tab en DevTools del navegador
-
-### Error: Supabase connection fails
-
-1. Verifica las variables de entorno en Vercel Settings
-2. Verifica que las keys de Supabase son las correctas
-3. Verifica RLS policies en Supabase
-
-## 📊 URLs de Producción
-
-Después del deployment:
-
-- Frontend: `https://tu-proyecto-frontend.vercel.app`
-- Backend: `https://tu-proyecto-backend.vercel.app`
-- Supabase: `https://erlfovrvvhdadvepokdh.supabase.co`
-
-## 🔄 Redeploy Automático
-
-Vercel automáticamente redeploya cuando haces push a tu branch principal:
-
-```bash
-git add .
-git commit -m "feat: nueva funcionalidad"
-git push origin main
+Si aún falla, verifica que `backend/package.json` tiene:
+```json
+{
+  "dependencies": {
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  }
+}
 ```
 
-## 📝 Notas Importantes
+## 📊 Estructura de URLs en Producción
 
-- **Supabase RLS:** Asegúrate de que las políticas RLS permiten acceso público para lectura
-- **Service Role Key:** Solo úsala en el backend, NUNCA en el frontend
-- **Variables de entorno:** No commitees archivos `.env` al repositorio
-- **Build time:** El primer deploy puede tardar 2-3 minutos
+```
+https://tu-proyecto.vercel.app/
+├── /                          → Frontend (Vite SPA)
+├── /api/health               → Backend health check
+├── /api/prompts              → GET all prompts
+├── /api/prompts/top-voted    → GET top voted prompts
+├── /api/prompts/recommended  → GET recommended prompts
+├── /api/tags                 → GET/POST/PUT/DELETE tags
+├── /api/ai-platforms         → GET/POST/PUT/DELETE platforms
+└── /api/auth/login           → POST login
+```
+
+## 🎯 Ventajas de Esta Configuración
+
+✅ **Un solo proyecto** - Todo en Vercel, fácil de manejar
+✅ **No necesitas CORS complicado** - Todo en el mismo dominio
+✅ **Auto-scaling** - Vercel escala automáticamente backend y frontend
+✅ **Deploy atómico** - Frontend y backend se actualizan juntos
+✅ **URLs limpias** - Sin subdominios ni dominios separados
+✅ **Costo optimizado** - Un solo proyecto en Vercel
 
 ## 🎉 ¡Listo!
 
-Tu aplicación estará disponible en:
-- Frontend: https://biblio-prompt-salud.vercel.app
-- API: https://biblio-prompt-backend.vercel.app/api/health
+Tu aplicación completa estará disponible en:
+- **Aplicación:** https://tu-proyecto.vercel.app
+- **API Health:** https://tu-proyecto.vercel.app/api/health
+- **Admin Panel:** https://tu-proyecto.vercel.app/admin
+
+¡Disfruta de **Biblio Prompt Salud**! 🏥✨
