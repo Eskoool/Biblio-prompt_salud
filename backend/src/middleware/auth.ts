@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import { supabase } from '../config/database';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticateToken = (
+export const authenticateToken = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
@@ -22,11 +22,29 @@ export const authenticateToken = (
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'default-secret';
-    const decoded = jwt.verify(token, secret) as any;
-    req.user = decoded;
+    // Verify token with Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(403).json({ message: 'Token inválido o expirado' });
+    }
+
+    // Get user profile to check role
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    req.user = {
+      id: user.id,
+      email: user.email || '',
+      role: profile?.role || 'user',
+    };
+
     next();
   } catch (error) {
+    console.error('Auth error:', error);
     return res.status(403).json({ message: 'Token inválido o expirado' });
   }
 };

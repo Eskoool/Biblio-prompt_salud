@@ -31,17 +31,15 @@ Una plataforma web moderna y profesional donde los profesionales de la salud pue
 - **Node.js** - Runtime de JavaScript
 - **Express** - Framework web
 - **TypeScript** - Tipado estático
-- **MongoDB** - Base de datos NoSQL
-- **Mongoose** - ODM para MongoDB
-- **JWT** - Autenticación con tokens
-- **bcrypt** - Hash de contraseñas
+- **Supabase** - Backend-as-a-Service (PostgreSQL + Auth + Storage)
+- **@supabase/supabase-js** - Cliente de Supabase
 
 ## 🚀 Instalación y Configuración
 
 ### Requisitos Previos
 
 - Node.js 18+
-- MongoDB 6+
+- Cuenta de Supabase (gratuita)
 - npm o yarn
 
 ### 1. Clonar el Repositorio
@@ -51,7 +49,18 @@ git clone https://github.com/tu-usuario/biblio-prompt-salud.git
 cd biblio-prompt-salud
 ```
 
-### 2. Configurar el Backend
+### 2. Configurar Supabase
+
+**Sigue la guía detallada en [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md)**
+
+Resumen rápido:
+
+1. Crea un proyecto en [supabase.com](https://supabase.com)
+2. Ejecuta el schema SQL (`backend/supabase-schema.sql`) en el SQL Editor
+3. Obtén tus API keys en Settings → API
+4. Crea un usuario admin en Authentication → Users
+
+### 3. Configurar el Backend
 
 ```bash
 cd backend
@@ -61,10 +70,10 @@ npm install
 
 # Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tus configuraciones
-
-# Poblar la base de datos con datos de ejemplo
-npm run seed
+# Editar .env con tus credenciales de Supabase:
+# SUPABASE_URL=https://tu-proyecto.supabase.co
+# SUPABASE_ANON_KEY=tu-anon-key
+# SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
 
 # Iniciar el servidor de desarrollo
 npm run dev
@@ -72,13 +81,19 @@ npm run dev
 
 El backend estará disponible en `http://localhost:5000`
 
-### 3. Configurar el Frontend
+### 4. Configurar el Frontend
 
 ```bash
 cd frontend
 
 # Instalar dependencias
 npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales de Supabase:
+# VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
+# VITE_SUPABASE_ANON_KEY=tu-anon-key
 
 # Iniciar el servidor de desarrollo
 npm run dev
@@ -103,17 +118,21 @@ npm run lint     # Linter
 npm run dev      # Servidor de desarrollo con hot reload
 npm run build    # Compilar TypeScript
 npm run start    # Servidor de producción
-npm run seed     # Poblar base de datos con datos de ejemplo
 ```
 
-## 🔑 Credenciales por Defecto
+**Nota**: El seed de datos se hace directamente en Supabase SQL Editor (ver `SUPABASE_SETUP.md`)
 
-Después de ejecutar el seed script:
+## 🔑 Credenciales de Acceso
 
-- **Email**: admin@biblioprompt.com
-- **Contraseña**: admin123
+Configura el usuario admin en Supabase Dashboard:
+
+- **Email**: admin@biblioprompt.com (o el que prefieras)
+- **Contraseña**: admin123 (configúralo en Supabase)
+- **Rol**: Actualiza a 'admin' en la tabla `user_profiles`
 
 ⚠️ **Importante**: Cambia estas credenciales en producción.
+
+Ver guía completa en [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md)
 
 ## 📱 Características del Proyecto
 

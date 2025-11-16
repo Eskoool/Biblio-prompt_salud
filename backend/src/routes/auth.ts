@@ -1,7 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import User from '../models/User';
+import { supabase, supabaseAdmin } from '../config/database';
 
 const router = express.Router();
 
@@ -10,37 +8,29 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
-    // Check password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({ message: 'Credenciales inválidas' });
-    }
-
-    // Generate token
-    const secret = process.env.JWT_SECRET || 'default-secret';
-    const token = jwt.sign(
-      {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-      },
-      secret,
-      { expiresIn: '7d' }
-    );
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
 
     res.json({
-      token,
+      token: data.session.access_token,
       user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+        id: data.user.id,
+        email: data.user.email,
+        name: profile?.name || 'User',
+        role: profile?.role || 'user',
       },
     });
   } catch (error) {
@@ -49,41 +39,90 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Register (for admin use)
+// Register
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name, role } = req.body;
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'El usuario ya existe' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = new User({
+    // Use admin client to create user with custom role
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password: hashedPassword,
-      name,
-      role: role || 'user',
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name: name || 'User',
+        role: role || 'user',
+      },
     });
 
-    await user.save();
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return res.status(400).json({ message: 'El usuario ya existe' });
+      }
+      throw error;
+    }
 
     res.status(201).json({
       message: 'Usuario creado exitosamente',
       user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+        id: data.user.id,
+        email: data.user.email,
+        name: name || 'User',
+        role: role || 'user',
       },
     });
   } catch (error) {
     console.error('Register error:', error);
+    res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
+
+// Logout
+router.post('/logout', async (req, res) => {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({ message: 'Sesión cerrada exitosamente' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ message: 'Error en el servidor' });
+  }
+});
+
+// Get current user
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({ message: 'No autenticado' });
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      return res.status(401).json({ message: 'Token inválido' });
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: profile?.name || 'User',
+      role: profile?.role || 'user',
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
     res.status(500).json({ message: 'Error en el servidor' });
   }
 });

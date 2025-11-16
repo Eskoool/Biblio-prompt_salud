@@ -1,23 +1,37 @@
-import mongoose from 'mongoose';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+// Client for general operations (uses anon key)
+export const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+// Admin client for operations that bypass RLS (uses service role key)
+export const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+);
 
 export const connectDB = async (): Promise<void> => {
   try {
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/biblio-prompt-salud';
+    // Test connection
+    const { data, error } = await supabase.from('tags').select('count');
 
-    await mongoose.connect(mongoURI);
+    if (error && error.code !== 'PGRST116') { // PGRST116 = empty result is ok
+      throw error;
+    }
 
-    console.log('✅ MongoDB connected successfully');
-    console.log(`📦 Database: ${mongoose.connection.name}`);
+    console.log('✅ Supabase connected successfully');
+    console.log(`📦 Database: ${process.env.SUPABASE_URL}`);
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    console.error('❌ Supabase connection error:', error);
     throw error;
   }
 };
-
-mongoose.connection.on('disconnected', () => {
-  console.log('⚠️  MongoDB disconnected');
-});
-
-mongoose.connection.on('error', (error) => {
-  console.error('❌ MongoDB error:', error);
-});
