@@ -1,5 +1,5 @@
 import express from 'express';
-import Tag from '../models/Tag';
+import { supabaseAdmin } from '../config/database';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,14 @@ const router = express.Router();
 // Get all tags
 router.get('/', async (req, res) => {
   try {
-    const tags = await Tag.find().sort({ category: 1, name: 1 });
+    const { data: tags, error } = await supabaseAdmin
+      .from('tags')
+      .select('*')
+      .order('category', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+
     res.json(tags);
   } catch (error) {
     console.error('Error fetching tags:', error);
@@ -20,14 +27,14 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, color, category } = req.body;
 
-    const tag = new Tag({
-      name,
-      description,
-      color,
-      category,
-    });
+    const { data: tag, error } = await supabaseAdmin
+      .from('tags')
+      .insert([{ name, description, color, category }])
+      .select()
+      .single();
 
-    await tag.save();
+    if (error) throw error;
+
     res.status(201).json(tag);
   } catch (error) {
     console.error('Error creating tag:', error);
@@ -40,11 +47,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, color, category } = req.body;
 
-    const tag = await Tag.findByIdAndUpdate(
-      req.params.id,
-      { name, description, color, category },
-      { new: true }
-    );
+    const { data: tag, error } = await supabaseAdmin
+      .from('tags')
+      .update({ name, description, color, category })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     if (!tag) {
       return res.status(404).json({ message: 'Etiqueta no encontrada' });
@@ -60,11 +70,12 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // Delete tag (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const tag = await Tag.findByIdAndDelete(req.params.id);
+    const { error } = await supabaseAdmin
+      .from('tags')
+      .delete()
+      .eq('id', req.params.id);
 
-    if (!tag) {
-      return res.status(404).json({ message: 'Etiqueta no encontrada' });
-    }
+    if (error) throw error;
 
     res.json({ message: 'Etiqueta eliminada exitosamente' });
   } catch (error) {

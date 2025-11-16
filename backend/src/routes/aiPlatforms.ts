@@ -1,5 +1,5 @@
 import express from 'express';
-import AIPlatform from '../models/AIPlatform';
+import { supabaseAdmin } from '../config/database';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();
@@ -7,7 +7,13 @@ const router = express.Router();
 // Get all AI platforms
 router.get('/', async (req, res) => {
   try {
-    const platforms = await AIPlatform.find().sort({ name: 1 });
+    const { data: platforms, error } = await supabaseAdmin
+      .from('ai_platforms')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+
     res.json(platforms);
   } catch (error) {
     console.error('Error fetching AI platforms:', error);
@@ -20,14 +26,14 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, icon, url } = req.body;
 
-    const platform = new AIPlatform({
-      name,
-      description,
-      icon,
-      url,
-    });
+    const { data: platform, error } = await supabaseAdmin
+      .from('ai_platforms')
+      .insert([{ name, description, icon, url }])
+      .select()
+      .single();
 
-    await platform.save();
+    if (error) throw error;
+
     res.status(201).json(platform);
   } catch (error) {
     console.error('Error creating AI platform:', error);
@@ -40,11 +46,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { name, description, icon, url } = req.body;
 
-    const platform = await AIPlatform.findByIdAndUpdate(
-      req.params.id,
-      { name, description, icon, url },
-      { new: true }
-    );
+    const { data: platform, error } = await supabaseAdmin
+      .from('ai_platforms')
+      .update({ name, description, icon, url })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
 
     if (!platform) {
       return res.status(404).json({ message: 'Plataforma IA no encontrada' });
@@ -60,11 +69,12 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // Delete AI platform (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const platform = await AIPlatform.findByIdAndDelete(req.params.id);
+    const { error } = await supabaseAdmin
+      .from('ai_platforms')
+      .delete()
+      .eq('id', req.params.id);
 
-    if (!platform) {
-      return res.status(404).json({ message: 'Plataforma IA no encontrada' });
-    }
+    if (error) throw error;
 
     res.json({ message: 'Plataforma IA eliminada exitosamente' });
   } catch (error) {
