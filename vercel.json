@@ -1,6 +1,6 @@
 {
   "framework": null,
-  "buildCommand": "npm --prefix frontend install && npm --prefix frontend run build",
+  "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm --prefix api install"
+  "installCommand": "npm --prefix api install && npm --prefix frontend install"
 }
