@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaFileAlt, FaTags, FaRobot } from 'react-icons/fa';

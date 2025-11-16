@@ -134,7 +134,6 @@ const TagFormModal = ({ tag, onSave, onClose }: TagFormModalProps) => {
                   }`}
                   style={{
                     backgroundColor: color,
-                    ringColor: color,
                   }}
                 />
               ))}
