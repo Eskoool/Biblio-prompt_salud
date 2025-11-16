@@ -1,17 +1,25 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build && cd ../backend && npm install && npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "echo 'Installing dependencies...'",
-  "rewrites": [
+  "installCommand": "npm install --prefix backend",
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/index"
+      "src": "api/index.ts",
+      "use": "@vercel/node"
     }
   ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 10
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.ts"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
-  }
+  ]
 }
