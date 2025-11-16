@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Register
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: express.Request, res: express.Response) => {
   try {
     const { email, password, name, role } = req.body;
 
