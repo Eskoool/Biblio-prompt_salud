@@ -78,7 +78,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Logout
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req: express.Request, res: express.Response) => {
   try {
     const { error } = await supabase.auth.signOut();
 
@@ -94,7 +94,7 @@ router.post('/logout', async (req, res) => {
 });
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', async (req: express.Request, res: express.Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
 
