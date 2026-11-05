@@ -1,6 +1,6 @@
 ---
 name: simulador-interactivo
-description: Construye simuladores, juegos y experiencias de aprendizaje interactivas en un único HTML autocontenido (JS vanilla, sin librerías), con corrección razonada de errores, dificultad adaptativa y rigor de contenido, usando como plantilla de estructura el "prompt del mago" (pixel art). Úsala cuando Yared pida un simulador, juego, quiz, caso clínico interactivo, entrenador, gamificar un tema, "experiencia interactiva", formación para residentes/enfermería/pacientes, o pegue la frase "adáptame este prompt para…". English: interactive simulator, training game, gamified learning HTML.
+description: 'Construye simuladores, juegos y experiencias de aprendizaje interactivas en un único HTML autocontenido (JS vanilla, sin librerías), con corrección razonada de errores, dificultad adaptativa y rigor de contenido, usando como plantilla de estructura el "prompt del mago" (pixel art). Úsala cuando Yared pida un simulador, juego, quiz, caso clínico interactivo, entrenador, gamificar un tema, "experiencia interactiva", formación para residentes/enfermería/pacientes, o pegue la frase "adáptame este prompt para…". English: interactive simulator, training game, gamified learning HTML.'
 ---
 
 # Simulador interactivo
